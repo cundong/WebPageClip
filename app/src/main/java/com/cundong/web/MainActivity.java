@@ -1,7 +1,6 @@
-package com.dodola.webpageclip;
+package com.cundong.web;
 
 import android.app.ProgressDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -11,13 +10,12 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Bundle;
 import android.os.Environment;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.text.TextUtils;
-import android.util.Patterns;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -28,39 +26,37 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.EditText;
 
-import net.steamcrafted.loadtoast.LoadToast;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.regex.Matcher;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+
     private FloatingActionButton mOpenLinkBtn;
+
     private WebView mWebview;
-    /**
-     * 加载等待框
-     */
-    private LoadToast lt;
+
     /**
      * 文件保存路径
      */
     private static final String DODO_FOLDER_PATH = (Environment.getExternalStorageDirectory() + "/dodo-clip");
+
     /**
      * 保存webview的可见区域尺寸
      */
-    private Rect webViewRect;
+    private Rect mWebViewRect;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        lt = new LoadToast(this);
-        mOpenLinkBtn = (FloatingActionButton) this.findViewById(R.id.open_link_btn);
+
+        mOpenLinkBtn = (FloatingActionButton) findViewById(R.id.open_link_btn);
         mOpenLinkBtn.setOnClickListener(this);
         mWebview = (WebView) findViewById(R.id.h5_web);
+
         WebSettings webSettings = mWebview.getSettings();
         webSettings.setSupportZoom(false);
         webSettings.setPluginState(WebSettings.PluginState.ON);
@@ -71,43 +67,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                lt.success();
             }
         });
-        Intent receivedIntent = getIntent();
-        initIntent(receivedIntent);
-
-    }
-
-    @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        initIntent(intent);
-    }
-
-    /**
-     * 处理接收到的分享内容
-     *
-     * @param intent
-     */
-    private void initIntent(Intent intent) {
-        if (intent != null) {
-            String receivedAction = intent.getAction();
-            if (receivedAction.equals(Intent.ACTION_SEND)) {
-                String filePathFromActivity = intent.getStringExtra(Intent.EXTRA_TEXT);
-                //提取url
-                if (!TextUtils.isEmpty(filePathFromActivity)) {
-                    //通过正则提取内容里的url
-                    final Matcher matcher = Patterns.WEB_URL.matcher(filePathFromActivity);
-                    while (matcher.find()) {
-                        final String group = matcher.group();
-                        lt.show();
-                        mWebview.loadUrl(group);
-                        break;
-                    }
-                }
-            }
-        }
     }
 
     @Override
@@ -126,7 +87,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-            save();
+            clip();
             return true;
         }
 
@@ -165,7 +126,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void onClick(DialogInterface dialog, int whichButton) {
                 String webUrl = input.getText().toString();
                 mWebview.loadUrl(webUrl);
-                lt.show();
             }
         });
 
@@ -218,55 +178,63 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return new SimpleDateFormat(str).format(new Date(date));
     }
 
-
     /**
      * 保存图片到文件
      */
-    private void save() {
+    private void clip() {
 
-        AsyncTask<Bitmap, Void, String> saveTask = new AsyncTask<Bitmap, Void, String>() {
-            ProgressDialog progressDialog = new ProgressDialog(MainActivity.this);
-
-            @Override
-            protected void onPostExecute(String resultFile) {
-                super.onPostExecute(resultFile);
-                calcLayout(false);
-                if (!TextUtils.isEmpty(resultFile)) {
-                    showImage(resultFile);
-                }
-                progressDialog.setMessage("处理完成。。。");
-                progressDialog.dismiss();
-            }
-
-            @Override
-            protected void onPreExecute() {
-                super.onPreExecute();
-                progressDialog.setIndeterminate(true);
-                progressDialog.setMessage("处理中。。。");
-                progressDialog.show();
-            }
-
-            @Override
-            protected String doInBackground(Bitmap... params) {
-                Bitmap bitmap = params[0];
-                String resultFile = null;
-                if (bitmap != null)
-                    resultFile = saveToFile(bitmap, DODO_FOLDER_PATH);
-                bitmap.recycle();
-                return resultFile;
-            }
-        };
+        //重新计算webView
         calcLayout(true);
+
         int measuredWidth = mWebview.getMeasuredWidth();
         int measuredHeight = mWebview.getMeasuredHeight();
+
         if (measuredWidth > 0 && measuredHeight > 0) {
+
+            //将WebView影像绘制在Canvas上
             Paint paint = new Paint();
-            Bitmap createBitmap = Bitmap.createBitmap(measuredWidth, measuredHeight, Bitmap.Config.ARGB_4444);
+            Bitmap createBitmap = Bitmap.createBitmap(measuredWidth, measuredHeight, Bitmap.Config.ARGB_8888);
+
             Canvas canvas = new Canvas(createBitmap);
             canvas.drawBitmap(createBitmap, 0.0f, (float) createBitmap.getHeight(), paint);
             mWebview.draw(canvas);
-            saveTask.execute(createBitmap);
 
+            AsyncTask<Bitmap, Void, String> saveTask = new AsyncTask<Bitmap, Void, String>() {
+                ProgressDialog progressDialog = new ProgressDialog(MainActivity.this);
+
+                @Override
+                protected void onPostExecute(String resultFile) {
+                    super.onPostExecute(resultFile);
+                    calcLayout(false);
+                    if (!TextUtils.isEmpty(resultFile)) {
+                        showImage(resultFile);
+                    }
+                    progressDialog.setMessage("处理完成。。。");
+                    progressDialog.dismiss();
+                }
+
+                @Override
+                protected void onPreExecute() {
+                    super.onPreExecute();
+                    progressDialog.setIndeterminate(true);
+                    progressDialog.setMessage("处理中。。。");
+                    progressDialog.show();
+                }
+
+                @Override
+                protected String doInBackground(Bitmap... params) {
+
+                    Bitmap bitmap = params[0];
+                    String resultFile = null;
+                    if (bitmap != null)
+                        resultFile = saveToFile(bitmap, DODO_FOLDER_PATH);
+                    bitmap.recycle();
+
+                    return resultFile;
+                }
+            };
+
+            saveTask.execute(createBitmap);
         }
     }
 
@@ -276,28 +244,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      * @param enableDrawingCache
      */
     private void calcLayout(boolean enableDrawingCache) {
-        if (this.webViewRect == null || this.webViewRect.isEmpty()) {
-            this.webViewRect = new Rect(this.mWebview.getLeft(), this.mWebview.getTop(), this.mWebview.getRight(), this.mWebview.getBottom());
+        if (mWebViewRect == null || mWebViewRect.isEmpty()) {
+            mWebViewRect = new Rect(mWebview.getLeft(), mWebview.getTop(), mWebview.getRight(), mWebview.getBottom());
         }
+
         if (enableDrawingCache) {
-            this.mWebview.measure(View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
-            this.mWebview.setDrawingCacheEnabled(true);
-            this.mWebview.buildDrawingCache();
+            mWebview.measure(
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+
+            //开启cache
+            mWebview.setDrawingCacheEnabled(true);
+//            mWebview.buildDrawingCache();
         } else {
-            this.mWebview.setDrawingCacheEnabled(false);
+            mWebview.setDrawingCacheEnabled(false);
         }
-        this.mWebview.layout(this.webViewRect.left, this.webViewRect.top, this.webViewRect.right, enableDrawingCache ? this.mWebview.getMeasuredHeight() : this.webViewRect.bottom);
+
+        mWebview.layout(mWebViewRect.left, mWebViewRect.top, mWebViewRect.right, enableDrawingCache ? mWebview.getMeasuredHeight() : mWebViewRect.bottom);
     }
 
-    /**
-     * 打开系统相册,查看文件
-     *
-     * @param str
-     */
-    public final void showImage(String str) {
+    private void showImage(String str) {
         Intent intent = new Intent("android.intent.action.VIEW");
         intent.setDataAndType(Uri.fromFile(new File(str)), "image/*");
         startActivity(intent);
     }
-
 }

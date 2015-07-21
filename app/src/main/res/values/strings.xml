@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">WebPageClip</string>
+    <string name="app_name">Web</string>
 
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">截屏</string>

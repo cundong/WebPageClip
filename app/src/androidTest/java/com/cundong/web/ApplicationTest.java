@@ -1,4 +1,4 @@
-package com.dodola.webpageclip;
+package com.cundong.web;
 
 import android.app.Application;
 import android.test.ApplicationTestCase;
