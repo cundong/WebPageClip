@@ -1,11 +1,9 @@
 package com.cundong.web;
 
 import android.app.ProgressDialog;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.net.Uri;
@@ -13,18 +11,13 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.design.widget.FloatingActionButton;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
-import android.webkit.WebViewClient;
-import android.widget.EditText;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -32,7 +25,7 @@ import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+public class MainActivity extends AppCompatActivity {
 
     private FloatingActionButton mOpenLinkBtn;
 
@@ -59,16 +52,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         WebSettings webSettings = mWebview.getSettings();
         webSettings.setSupportZoom(false);
-        webSettings.setPluginState(WebSettings.PluginState.ON);
         webSettings.setLoadWithOverviewMode(true);
         webSettings.setJavaScriptEnabled(true);
-        mWebview.setWebChromeClient(new WebChromeClient());
-        mWebview.setWebViewClient(new WebViewClient() {
-            @Override
-            public void onPageFinished(WebView view, String url) {
-                super.onPageFinished(view, url);
-            }
-        });
+
+        mWebview.loadUrl("http://www.baidu.com");
     }
 
     @Override
@@ -92,53 +79,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    public void onClick(View v) {
-        switch (v.getId()) {
-            case R.id.open_link_btn: {
-                OpenInputUrlDialogBox();
-            }
-            break;
-        }
-    }
-
-    /**
-     * 打开输入连接对话框
-     */
-    private void OpenInputUrlDialogBox() {
-
-        LayoutInflater layoutInflater = LayoutInflater.from(this);
-        View promptView = layoutInflater.inflate(R.layout.dialog_input, null);
-        final AlertDialog.Builder alert = new AlertDialog.Builder(this);
-        alert.setTitle("Open url");
-        alert.setView(promptView);
-
-        final EditText input = (EditText) promptView
-                .findViewById(R.id.dialog_input);
-
-        input.requestFocus();
-        input.setHint("Enter web url");
-        input.setTextColor(Color.BLACK);
-
-        alert.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int whichButton) {
-                String webUrl = input.getText().toString();
-                mWebview.loadUrl(webUrl);
-            }
-        });
-
-
-        alert.setNegativeButton("CANCEL",
-                new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int whichButton) {
-
-                    }
-                }
-        );
-        AlertDialog alert1 = alert.create();
-        alert1.show();
     }
 
     /**
@@ -205,10 +145,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 @Override
                 protected void onPostExecute(String resultFile) {
                     super.onPostExecute(resultFile);
+
                     calcLayout(false);
+
                     if (!TextUtils.isEmpty(resultFile)) {
                         showImage(resultFile);
                     }
+
                     progressDialog.setMessage("处理完成。。。");
                     progressDialog.dismiss();
                 }
@@ -216,6 +159,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 @Override
                 protected void onPreExecute() {
                     super.onPreExecute();
+
                     progressDialog.setIndeterminate(true);
                     progressDialog.setMessage("处理中。。。");
                     progressDialog.show();
@@ -255,7 +199,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             //开启cache
             mWebview.setDrawingCacheEnabled(true);
-//            mWebview.buildDrawingCache();
         } else {
             mWebview.setDrawingCacheEnabled(false);
         }
